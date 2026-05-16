@@ -119,7 +119,7 @@ export function startViewerServer(
   let currentPort = requestedPort;
 
   const tryListen = (): void => {
-    server.listen(currentPort, "127.0.0.1");
+    server.listen(currentPort, "0.0.0.0");
   };
 
   server.on("listening", () => {

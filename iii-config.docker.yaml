@@ -46,7 +46,5 @@ workers:
       logs_console_output: true
   - name: iii-exec
     config:
-      watch:
-        - src/**/*.ts
       exec:
-        - node dist/index.mjs
+        - node /app/dist/index.mjs

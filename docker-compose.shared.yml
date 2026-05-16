@@ -16,6 +16,28 @@
 x-agentmemory-secret: &secret
   AGENTMEMORY_SECRET: ${AGENTMEMORY_SECRET:-change-me-to-a-random-secret}
   AGENTMEMORY_III_VERSION: ${AGENTMEMORY_III_VERSION:-0.11.2}
+  # LLM provider keys — pass from host env, leave blank to use no-op provider
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-}
+  OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT:-}
+  OPENAI_API_KEY_FOR_LLM: ${OPENAI_API_KEY_FOR_LLM:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+  MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+  # Embedding
+  EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-}
+  OPENAI_EMBEDDING_BASE_URL: ${OPENAI_EMBEDDING_BASE_URL:-}
+  OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-}
+  OPENAI_EMBEDDING_DIMENSIONS: ${OPENAI_EMBEDDING_DIMENSIONS:-}
+  # Behavior flags
+  AGENTMEMORY_AUTO_COMPRESS: ${AGENTMEMORY_AUTO_COMPRESS:-}
+  AGENTMEMORY_INJECT_CONTEXT: ${AGENTMEMORY_INJECT_CONTEXT:-}
+  CONSOLIDATION_ENABLED: ${CONSOLIDATION_ENABLED:-}
+  GRAPH_EXTRACTION_ENABLED: ${GRAPH_EXTRACTION_ENABLED:-}
 
 services:
   # One-shot init container: docker creates named volumes root:root mode
@@ -33,18 +55,7 @@ services:
     environment: *secret
 
   iii-engine:
-    # For a shared remote deployment, use the official image (committed code only).
-    # For development / hot-reload with unstaged code, comment out `image` and
-    # uncomment the `volumes` bind-mount below.
-    image: iiidev/iii:${AGENTMEMORY_III_VERSION:-0.11.2}
-    # To use local unstaged code instead of the baked-in version:
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
-    # Replace the bind-mount with your local path:
-    # volumes:
-    #   - ./dist:/app/dist:ro
-    #   - ./iii-config.docker.yaml:/app/config.yaml:ro
+    image: agentmemory-engine:latest
     user: "65532:65532"
     depends_on:
       iii-init:
@@ -56,11 +67,12 @@ services:
       - "0.0.0.0:3111:3111"
       # SSE streams — real-time observation stream
       - "0.0.0.0:3112:3112"
-      # Viewer — real-time dashboard (unauthenticated)
-      - "0.0.0.0:3113:3113"
+      # Viewer UI — web-based memory viewer
+      - "0.0.0.0:3114:3113"
     volumes:
       - iii-data:/data
       - ./iii-config.docker.yaml:/app/config.yaml:ro
+      - ./dist:/app/dist:ro
     environment: *secret
     restart: unless-stopped
     logging:

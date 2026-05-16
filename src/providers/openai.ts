@@ -2,6 +2,7 @@ import type { MemoryProvider } from "../types.js";
 import { getEnvVar } from "../config.js";
 
 const DEFAULT_BASE_URL = "https://api.openai.com";
+const DEFAULT_MODEL = "gpt-4o-mini";
 
 /**
  * OpenAI-compatible LLM provider.

@@ -54,7 +54,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
     this.apiKey = apiKey || getEnvVar("OPENAI_API_KEY") || "";
     if (!this.apiKey) throw new Error("OPENAI_API_KEY is required");
     this.baseUrl =
-      getEnvVar("OPENAI_BASE_URL") || DEFAULT_BASE_URL;
+      getEnvVar("OPENAI_EMBEDDING_BASE_URL") || DEFAULT_BASE_URL;
     this.model =
       getEnvVar("OPENAI_EMBEDDING_MODEL") || DEFAULT_MODEL;
     this.dimensions = resolveDimensions(

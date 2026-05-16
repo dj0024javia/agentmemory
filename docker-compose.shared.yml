@@ -1,0 +1,74 @@
+# agentmemory — shared / remote-hosted deployment
+#
+# Use this instead of the default docker-compose.yml when you want
+# multiple agents (across machines) to share the same memory store.
+#
+#   1. Copy this file alongside the repo as docker-compose.yml
+#   2. Set AGENTMEMORY_SECRET to something strong (openssl rand -hex 32)
+#   3. docker compose up -d
+#   4. From remote machines, set AGENTMEMORY_URL=http://<remote-ip>:3111
+#   5. Open viewer at http://<remote-ip>:3113
+#
+# Security: this binds all ports to 0.0.0.0. Protect with a firewall
+# (ufw/iptables) or reverse-proxy (nginx/caddy) + basic auth.
+# The AGENTMEMORY_SECRET env var adds HMAC auth to all REST endpoints.
+
+x-agentmemory-secret: &secret
+  AGENTMEMORY_SECRET: ${AGENTMEMORY_SECRET:-change-me-to-a-random-secret}
+  AGENTMEMORY_III_VERSION: ${AGENTMEMORY_III_VERSION:-0.11.2}
+
+services:
+  # One-shot init container: docker creates named volumes root:root mode
+  # 755, but the iii-engine image is distroless and runs as UID 65532
+  # with no `chown` of its own. Without this, /data is unwritable, the
+  # engine silently buffers in RAM, and state evaporates on every
+  # restart.
+  iii-init:
+    image: busybox:1.36
+    user: "0:0"
+    volumes:
+      - iii-data:/data
+    entrypoint: ["sh", "-c", "chown -R 65532:65532 /data && chmod 755 /data"]
+    restart: "no"
+    environment: *secret
+
+  iii-engine:
+    # For a shared remote deployment, use the official image (committed code only).
+    # For development / hot-reload with unstaged code, comment out `image` and
+    # uncomment the `volumes` bind-mount below.
+    image: iiidev/iii:${AGENTMEMORY_III_VERSION:-0.11.2}
+    # To use local unstaged code instead of the baked-in version:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    # Replace the bind-mount with your local path:
+    # volumes:
+    #   - ./dist:/app/dist:ro
+    #   - ./iii-config.docker.yaml:/app/config.yaml:ro
+    user: "65532:65532"
+    depends_on:
+      iii-init:
+        condition: service_completed_successfully
+    ports:
+      # WebSocket — clients (MCP, viewer, plugins) connect here
+      - "0.0.0.0:49134:49134"
+      # REST API — memory tools, hooks, status endpoints
+      - "0.0.0.0:3111:3111"
+      # SSE streams — real-time observation stream
+      - "0.0.0.0:3112:3112"
+      # Viewer — real-time dashboard (unauthenticated)
+      - "0.0.0.0:3113:3113"
+    volumes:
+      - iii-data:/data
+      - ./iii-config.docker.yaml:/app/config.yaml:ro
+    environment: *secret
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  iii-data:
+    name: agentmemory-data
